@@ -1,0 +1,5 @@
+*/samples/*
+
+# artifacts created by generator
+*.bin
+*.sha
