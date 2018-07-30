@@ -46,25 +46,36 @@ func offsetToBit(offset int) int {
 }
 
 type Stats struct {
-	started   time.Time
-	bytes     int
-	maxHashes uint64
-	curHashes uint64
+	started        time.Time
+	bytes          int
+	maxHashes      uint64
+	maxHashedBytes uint64
+	curHashes      uint64
+	curHashedBytes uint64
 }
 
 func NewStats(bytes int) *Stats {
 	maxHashes := uint64(bytes * 8)
+	maxHashedBytes := uint64(bytes) * maxHashes / 2
 
-	return &Stats{time.Now(), bytes, maxHashes, 0}
+	return &Stats{time.Now(), bytes, maxHashes, maxHashedBytes, 0, 0}
 }
 
-func (s *Stats) hashed() (progress int) {
+func (s *Stats) hashed(hashedBytes int) {
 	atomic.AddUint64(&s.curHashes, 1)
-	return
+	atomic.AddUint64(&s.curHashedBytes, uint64(hashedBytes))
 }
 
-func (s *Stats) lap() (progress int) {
+func (s *Stats) lap() (progress int, elapsedSec uint64, estimateSec uint64, hashesPerSec uint64) {
+	elapsedSec = uint64(time.Since(s.started).Seconds())
+	if elapsedSec > 0 {
+		hashesPerSec = s.curHashedBytes / (1024 * 1024 * elapsedSec)
+	}
+
 	progress = int(s.curHashes * 100 / s.maxHashes)
+	if s.curHashedBytes > 0 {
+		estimateSec = elapsedSec * s.maxHashedBytes / s.curHashedBytes
+	}
 	return
 }
 
@@ -84,7 +95,7 @@ func (s *Stats) lap4() (progress int, elapsedSec uint64, estimateSec uint64, has
 func (s *Stats) fin() (elapsedSec uint64, hashesPerSec uint64) {
 	elapsedSec = uint64(time.Since(s.started).Seconds())
 	if elapsedSec > 0 {
-		hashesPerSec = s.curHashes * uint64(s.bytes) / (1024 * 1024 * elapsedSec)
+		hashesPerSec = s.curHashedBytes / (1024 * 1024 * elapsedSec)
 	}
 	return
 }
@@ -255,7 +266,8 @@ loop:
 				}
 				Trace.Println("Continue")
 			}
-			stats.hashed()
+			// bytes "actually" hashed
+			stats.hashed(len(data) - byt)
 		}
 	}
 
@@ -290,7 +302,7 @@ loop:
 				}
 				Trace.Println("Continue")
 			}
-			stats.hashed()
+			stats.hashed(len(data) - byt)
 		}
 	}
 
@@ -330,18 +342,17 @@ func waitCompletion(wg *sync.WaitGroup, cancel context.CancelFunc) {
 				break loop
 
 			case <-time.After(150 * time.Millisecond):
-				if verbose {
-					if sporadic%10 == 0 {
-						progress, elapsedSec, estimateSec, hashesPerSec := stats.lap4()
-						fmt.Printf("%c [%2d%% done in %ds of ~%ds] hashing %dMB/s\r",
-							animation[animationIdx%4],
-							progress, elapsedSec, estimateSec, hashesPerSec)
-					} else {
-						fmt.Printf("%c \r", animation[animationIdx%4])
-					}
-					sporadic++
-					animationIdx++
+				if sporadic%10 == 0 {
+					progress, elapsedSec, estimateSec, hashesPerSec := stats.lap()
+					fmt.Printf("%c [%2d%% done in %ds of ~%ds] hashing %dMB/s\r",
+						animation[animationIdx%4],
+						progress, elapsedSec, estimateSec, hashesPerSec)
+				} else {
+					fmt.Printf("%c \r", animation[animationIdx%4])
 				}
+				sporadic++
+				animationIdx++
+
 			}
 		}
 	} else {
