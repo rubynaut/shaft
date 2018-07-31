@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -152,7 +153,6 @@ func (s FxSha) Overwrite(offset int, p byte) hash.Hash {
 		log.Fatal("unable to prepare unmarshaler")
 	}
 	if err := unmarshaler.UnmarshalBinary(fixpoint); err != nil {
-		Trace.Printf("UnmarshalBinary %d %#v", idx, fixpoint)
 		log.Fatal("unable to unmarshal hash: ", err)
 	}
 
@@ -177,13 +177,13 @@ var forward bool
 var logging bool
 
 func main() {
-	flag.StringVar(&digString, "s", "dead", "sha512 DIGEST of original data")
+	flag.StringVar(&digString, "s", "", "sha512 DIGEST of original data")
 	flag.StringVar(&filename, "f", "f", "FILE to inspect for bit errors")
-	flag.IntVar(&threads, "t", 1, "number of THREADS to utilize")
-	flag.BoolVar(&exhaustive, "x", false, "exhaustive search")
+	flag.IntVar(&threads, "t", runtime.NumCPU()/2, "number of THREADS to utilize")
+	flag.BoolVar(&exhaustive, "X", false, "exhaustive search")
 	flag.BoolVar(&forward, "F", false, "use (slow) FORWARD search")
 	flag.BoolVar(&verbose, "v", false, "enable VERBOSE")
-	flag.BoolVar(&logging, "l", false, "enable LOGGING")
+	flag.BoolVar(&logging, "L", false, "enable LOGGING")
 
 	flag.Bool("Version", false, "V0.1.729")
 	flag.Parse()
@@ -193,11 +193,13 @@ func main() {
 		Trace.Println("Disable verbose since logging")
 		verbose = false
 	}
+	Trace.Printf("Number of cores: %d", runtime.NumCPU())
 
 	searchfct := searchBackward
 	if forward {
 		searchfct = searchForward
 	}
+
 	dig, err := hex.DecodeString(digString)
 	if err != nil {
 		log.Fatal(err)
@@ -236,7 +238,6 @@ func main() {
 	}
 
 	waitCompletion(&wg, cancel)
-	//		fmt.Printf("No match found\n")
 }
 
 func searchBackward(ctx context.Context, fxsha *FxSha, id int, stride int, data []byte, mdOrig []byte) (bool, int, byte) {
@@ -379,3 +380,24 @@ func waitCompletion(wg *sync.WaitGroup, cancel context.CancelFunc) {
 	}
 
 }
+
+/*
+
+	// ------
+	started := time.Now()
+	for i := 0; i < 100000; i++ {
+		sha := sha512.New()
+		sha.Write(data)
+		sha.Sum(nil)
+	}
+	fmt.Printf("SHA classic %f\n", time.Since(started).Seconds())
+
+	fx := NewFxSha(data)
+	started = time.Now()
+	for i := 0; i < 100000; i++ {
+		fx.Overwrite(i, 0).Sum(nil)
+	}
+	fmt.Printf("SHA fx #10 %f\n", time.Since(started).Seconds())
+
+	return
+*/
