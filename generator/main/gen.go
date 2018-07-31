@@ -11,7 +11,7 @@ import (
 
 const (
 	dataTemplate   = "%s.bin"
-	shaTemplate    = "%s.sha512"
+	shaTemplate    = "%s.sha"
 	sampleTemplate = "%s-%06x-%02x-%02x.bin"
 
 	fileMode = 0644
