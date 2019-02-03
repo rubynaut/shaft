@@ -2,7 +2,15 @@
 
 ![Image](./gopher.gif)
 
+## in a nutshell 
+
 ![](https://img.shields.io/github/release-pre/rubynaut/shaft.svg?label=experimental&logo=golang&style=flat)
+![](https://img.shields.io/github/release/rubynaut/shaft.svg?colorB=green&logo=go&style=flat)
+
+![](https://img.shields.io/github/issues/rubynaut/shaft.svg?colorB=orange&style=flat)
+![](https://img.shields.io/github/tag/rubynaut/shaft.svg?logo=go&style=social)
+
+TL;DR
 
 ## Welcome to GitHub Pages
 
