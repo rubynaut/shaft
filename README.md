@@ -1,3 +1,9 @@
+
+
+![Image](./gopher.gif)
+
+![](https://img.shields.io/github/release-pre/rubynaut/shaft.svg?label=experimental&logo=golang&style=flat)
+
 ## Welcome to GitHub Pages
 
 You can use the [editor on GitHub](https://github.com/rubynaut/shaft/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
